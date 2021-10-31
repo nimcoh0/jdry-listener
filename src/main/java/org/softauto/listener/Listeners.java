@@ -32,12 +32,17 @@ public class Listeners {
 
         static public boolean isExist(MethodSignature sig){
             AtomicReference<Boolean> ref = new AtomicReference();
+            ref.set(false);
             for(HashMap<String,Object> listener : listeners){
                 listener.forEach((k,v)->{
-                    if(k.equals(sig.getName()) && Arrays.equals(((Object[])v),sig.getParameterTypes())){
+                    String fqmn = buildMethodFQMN(sig.getName(), sig.getDeclaringType().getName());
+                    if(k.equals(fqmn) && Arrays.equals(((Object[])v),sig.getParameterTypes())){
                          ref.set(true);
                     }
-                });
+                 });
+                if(ref.get()){
+                    return ref.get();
+                }
             }
             return ref.get();
         }
@@ -47,6 +52,8 @@ public class Listeners {
             return listeners;
         }
 
-
+    public static String buildMethodFQMN(String methodName, String clazz){
+        return clazz.replace(".","_")+"_"+methodName;
+    }
 
 }

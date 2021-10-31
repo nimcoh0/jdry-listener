@@ -64,7 +64,7 @@ public class Listener {
                         try {
                             logger.debug("fqmn:" + fqmn.get() + " args:" + joinPoint.getArgs().toString() + " types:" + sig.getMethod().getParameterTypes());
                             method.setAccessible(true);
-                            ref.set((Object[]) method.invoke(null, new Object[]{fqmn.get(), joinPoint.getArgs(), sig.getMethod().getParameterTypes()}));
+                            ref.set((Object[]) method.invoke(serviceImpl, new Object[]{fqmn.get(), joinPoint.getArgs(), sig.getMethod().getParameterTypes()}));
                         } catch (Exception e) {
                             logger.error("send message " + fqmn.get() + " fail  ", e);
                         }
@@ -98,7 +98,7 @@ public class Listener {
                                 try {
                                     logger.debug("fqmn:" + fqmn + " args:" + joinPoint.getArgs().toString() + " types:" + sig.getMethod().getParameterTypes());
                                     method.setAccessible(true);
-                                    method.invoke(null, new Object[]{fqmn + "_result", new Object[]{result}, sig.getMethod().getReturnType()});
+                                    method.invoke(serviceImpl, new Object[]{fqmn + "_result", new Object[]{result}, sig.getMethod().getReturnType()});
                                 } catch (Exception e) {
                                     logger.error("sendResult fail for " + fqmn + "_result", e);
                                 }
