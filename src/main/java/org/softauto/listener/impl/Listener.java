@@ -108,7 +108,7 @@ public class Listener {
                             try {
                                 logger.debug("fqmn:" + fqmn + " args:" + joinPoint.getArgs().toString() + " types:" + sig.getMethod().getParameterTypes());
                                 method.setAccessible(true);
-                                method.invoke(null, new Object[]{fqmn + "_result", joinPoint.getArgs(), sig.getMethod().getParameterTypes()});
+                                method.invoke(serviceImpl, new Object[]{fqmn + "_result", joinPoint.getArgs(), sig.getMethod().getParameterTypes()});
 
                             } catch (Exception e) {
                                 logger.error("sendResult fail for " + fqmn + "_result", e);
