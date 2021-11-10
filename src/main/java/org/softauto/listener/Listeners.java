@@ -1,6 +1,7 @@
 package org.softauto.listener;
 
 import org.aspectj.lang.reflect.MethodSignature;
+import org.softauto.listener.impl.Listener;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -11,7 +12,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class Listeners {
 
-
+        static org.apache.logging.log4j.Logger logger = org.apache.logging.log4j.LogManager.getLogger(Listeners.class);
         static private List<HashMap<String,Object>> listeners = new ArrayList<>();
 
         static public void addListener(String methodName, Object[] types){
@@ -38,11 +39,15 @@ public class Listeners {
                     String fqmn = buildMethodFQMN(sig.getName(), sig.getDeclaringType().getName());
                     if(k.equals(fqmn) && Arrays.equals(((Object[])v),sig.getParameterTypes())){
                          ref.set(true);
+                         logger.debug("found listener "+ fqmn);
                     }
                  });
                 if(ref.get()){
                     return ref.get();
                 }
+            }
+            if(!ref.get()){
+                logger.debug("listener not found for "+ sig.getName());
             }
             return ref.get();
         }

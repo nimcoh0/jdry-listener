@@ -30,7 +30,7 @@ public class Listener {
 
 
 
-    private  static ExecutorService executor = Executors.newFixedThreadPool(50);
+    private  static ExecutorService executor = Executors.newFixedThreadPool(100);
 
     static public void init(Object serviceImpl){
         try {
@@ -59,12 +59,13 @@ public class Listener {
                 fqmn.set(buildMethodFQMN(sig.getName(), sig.getDeclaringType().getName()));
                 logger.trace(TRACER, "IN " + fqmn.get() + "( " + Arrays.toString(sig.getMethod().getParameterTypes()) + ")[" + Arrays.toString(joinPoint.getArgs()) + "]");
                 AtomicReference<Object[]> ref = new AtomicReference();
+                ref.set(null);
                 if(Listeners.isExist(sig)) {
                     executor.submit(() -> {
                         try {
-                            logger.debug("fqmn:" + fqmn.get() + " args:" + joinPoint.getArgs().toString() + " types:" + sig.getMethod().getParameterTypes());
+                            logger.debug("invoke listener on "+serviceImpl+ " fqmn: "+ fqmn.get() + " args:" + joinPoint.getArgs().toString() + " types:" + sig.getMethod().getParameterTypes());
                             method.setAccessible(true);
-                            ref.set((Object[]) method.invoke(serviceImpl, new Object[]{fqmn.get(), joinPoint.getArgs(), sig.getMethod().getParameterTypes()}));
+                            ref.set((Object[]) method.invoke(serviceImpl, new Object[]{fqmn.get(), getArgs(joinPoint.getArgs()), getTypes(sig.getMethod().getParameterTypes())}));
                         } catch (Exception e) {
                             logger.error("send message " + fqmn.get() + " fail  ", e);
                         }
@@ -72,7 +73,7 @@ public class Listener {
                 }
                 Object[] o = ref.get();
                 if (o != null && o.length > 0 && o[0] != null) {
-                    result = joinPoint.proceed(o);
+                  result = joinPoint.proceed(o);
                 } else {
                     result = joinPoint.proceed();
                 }
@@ -88,7 +89,7 @@ public class Listener {
     public  static void returning(JoinPoint joinPoint,Object result) {
         try {
             if(serviceImpl != null) {
-                Method method = serviceImpl.getClass().getDeclaredMethod("executeAfter", new Class[]{String.class, Object[].class, Class[].class});
+                //Method method = serviceImpl.getClass().getDeclaredMethod("executeAfter", new Class[]{String.class, Object[].class, Class[].class});
                 MethodSignature sig = (MethodSignature) joinPoint.getSignature();
                 if(Listeners.isExist(sig)) {
                     String fqmn = buildMethodFQMN(sig.getName(), sig.getDeclaringType().getName());
@@ -96,22 +97,23 @@ public class Listener {
                         if (result != null)
                             executor.submit(() -> {
                                 try {
-                                    logger.debug("fqmn:" + fqmn + " args:" + joinPoint.getArgs().toString() + " types:" + sig.getMethod().getParameterTypes());
+                                    Method method = serviceImpl.getClass().getDeclaredMethod("executeAfter", String.class, Object[].class, Class[].class,Object.class,Class.class);
+                                    logger.debug("invoke returning listener on "+serviceImpl+ " fqmn:" + fqmn + " args:" + joinPoint.getArgs().toString() + " types:" + sig.getMethod().getParameterTypes());
                                     method.setAccessible(true);
-                                    method.invoke(serviceImpl, new Object[]{fqmn, new Object[]{result}, sig.getMethod().getReturnType()});
+                                    method.invoke(serviceImpl, new Object[]{fqmn, getArgs(joinPoint.getArgs()), getTypes(sig.getMethod().getParameterTypes()),result, sig.getMethod().getReturnType()});
                                 } catch (Exception e) {
-                                    logger.error("sendResult fail for " + fqmn , e);
+                                    logger.error("sendResult returning fail for " + fqmn , e);
                                 }
                             });
                     } else {
                         executor.submit(() -> {
                             try {
-                                logger.debug("fqmn:" + fqmn + " args:" + joinPoint.getArgs().toString() + " types:" + sig.getMethod().getParameterTypes());
+                                Method method = serviceImpl.getClass().getDeclaredMethod("executeAfter", String.class, Object[].class, Class[].class);
+                                logger.debug("invoke returning listener on "+serviceImpl+ " fqmn:" + fqmn + " args:" + result2String(joinPoint.getArgs()) + " types:" + result2String(sig.getMethod().getParameterTypes()));
                                 method.setAccessible(true);
-                                method.invoke(serviceImpl, new Object[]{fqmn , joinPoint.getArgs(), sig.getMethod().getParameterTypes()});
-
-                            } catch (Exception e) {
-                                logger.error("sendResult fail for " + fqmn , e);
+                                method.invoke(serviceImpl, new Object[]{fqmn , getArgs(joinPoint.getArgs()), getTypes(sig.getMethod().getParameterTypes())});
+                             } catch (Exception e) {
+                                logger.error("sendResult returning fail for " + fqmn , e);
                             }
                         });
                     }
@@ -222,4 +224,34 @@ public class Listener {
         Listeners.addModule(module);
       }
 
+    /**
+     * get the arguments types
+     **/
+    public static Class[] getTypes(Object obj){
+        Class[] types;
+        if(obj instanceof Class<?>){
+            types = new Class[1];
+            types[0] = (Class)obj;
+        }else {
+            return (Class[])obj;
+        }
+
+        return types;
+    }
+
+    /**
+     * get the arguments values
+     **/
+    public static Object[] getArgs(Object obj){
+        Object[] args;
+
+        if(!(obj instanceof Object[])){
+            args = new Object[1];
+            args[0] = obj;
+        }else {
+            return (Object[])obj;
+        }
+
+        return args;
+    }
 }
