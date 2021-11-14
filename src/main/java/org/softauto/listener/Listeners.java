@@ -46,9 +46,7 @@ public class Listeners {
                     return ref.get();
                 }
             }
-            if(!ref.get()){
-                logger.debug("listener not found for "+ sig.getName());
-            }
+
             return ref.get();
         }
 

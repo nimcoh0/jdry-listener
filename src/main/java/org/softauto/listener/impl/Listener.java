@@ -37,11 +37,7 @@ public class Listener {
             Listener.serviceImpl = serviceImpl;
             String javaHome = System.getenv("JAVA_HOME");
             addJarToClasspath(javaHome+"/lib/tools.jar");
-            //addJarToClasspath(Listener.class.getClassLoader().getResource("aspectjweaver-1.9.6.jar").toString());
             loadLib(System.getenv("temp"),"aspectjweaver-1.9.6.jar");
-
-            //InputStream in = Listener.class.getClassLoader().getResourceAsStream("aspectjweaver-1.9.6.jar");
-            //JarInputStream jar = new JarInputStream(in);
             startWeaver(System.getenv("temp")+"/aspectjweaver-1.9.6.jar");
         }catch (Exception e){
             logger.error("ServiceImpl not found ",e);
@@ -89,7 +85,7 @@ public class Listener {
     public  static void returning(JoinPoint joinPoint,Object result) {
         try {
             if(serviceImpl != null) {
-                //Method method = serviceImpl.getClass().getDeclaredMethod("executeAfter", new Class[]{String.class, Object[].class, Class[].class});
+                Method method = serviceImpl.getClass().getDeclaredMethod("executeAfter", new Class[]{String.class, Object[].class, Class[].class});
                 MethodSignature sig = (MethodSignature) joinPoint.getSignature();
                 if(Listeners.isExist(sig)) {
                     String fqmn = buildMethodFQMN(sig.getName(), sig.getDeclaringType().getName());
@@ -97,10 +93,9 @@ public class Listener {
                         if (result != null)
                             executor.submit(() -> {
                                 try {
-                                    Method method = serviceImpl.getClass().getDeclaredMethod("executeAfter", String.class, Object[].class, Class[].class,Object.class,Class.class);
                                     logger.debug("invoke returning listener on "+serviceImpl+ " fqmn:" + fqmn + " args:" + joinPoint.getArgs().toString() + " types:" + sig.getMethod().getParameterTypes());
                                     method.setAccessible(true);
-                                    method.invoke(serviceImpl, new Object[]{fqmn, getArgs(joinPoint.getArgs()), getTypes(sig.getMethod().getParameterTypes()),result, sig.getMethod().getReturnType()});
+                                    method.invoke(serviceImpl, new Object[]{fqmn, new Object[]{result}, new Class[]{sig.getMethod().getReturnType()}});
                                 } catch (Exception e) {
                                     logger.error("sendResult returning fail for " + fqmn , e);
                                 }
@@ -108,7 +103,6 @@ public class Listener {
                     } else {
                         executor.submit(() -> {
                             try {
-                                Method method = serviceImpl.getClass().getDeclaredMethod("executeAfter", String.class, Object[].class, Class[].class);
                                 logger.debug("invoke returning listener on "+serviceImpl+ " fqmn:" + fqmn + " args:" + result2String(joinPoint.getArgs()) + " types:" + result2String(sig.getMethod().getParameterTypes()));
                                 method.setAccessible(true);
                                 method.invoke(serviceImpl, new Object[]{fqmn , getArgs(joinPoint.getArgs()), getTypes(sig.getMethod().getParameterTypes())});
@@ -175,9 +169,9 @@ public class Listener {
             VirtualMachine jvm = VirtualMachine.attach(pid);
             jvm.loadAgent(aspectjweaver);
             jvm.detach();
-            logger.info("Listener server Load successfully ");
+            logger.info("Weaver Load successfully ");
         }catch (Exception e){
-            logger.fatal("load Listener fail ",e);
+            logger.fatal("load Weaver fail ",e);
             System.exit(1);
         }
 
