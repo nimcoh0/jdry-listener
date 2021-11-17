@@ -37,7 +37,7 @@ public class Listeners {
             for(HashMap<String,Object> listener : listeners){
                 listener.forEach((k,v)->{
                     String fqmn = buildMethodFQMN(sig.getName(), sig.getDeclaringType().getName());
-                    if(k.equals(fqmn) && Arrays.equals(((Object[])v),sig.getParameterTypes())){
+                    if(k.equals(fqmn) && Arrays.equals(((Class[])v),sig.getParameterTypes())){
                          ref.set(true);
                          logger.debug("found listener "+ fqmn);
                     }

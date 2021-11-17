@@ -33,12 +33,21 @@ public class Listener {
     private  static ExecutorService executor = Executors.newFixedThreadPool(100);
 
     static public void init(Object serviceImpl){
+        init(serviceImpl,true);
+    }
+
+
+    static public void init(Object serviceImpl,boolean loadWeaver){
         try {
             Listener.serviceImpl = serviceImpl;
             String javaHome = System.getenv("JAVA_HOME");
             addJarToClasspath(javaHome+"/lib/tools.jar");
             loadLib(System.getenv("temp"),"aspectjweaver-1.9.6.jar");
-            startWeaver(System.getenv("temp")+"/aspectjweaver-1.9.6.jar");
+            if(loadWeaver) {
+                startWeaver(System.getenv("temp") + "/aspectjweaver-1.9.6.jar");
+            }else {
+                logger.info("Weaver not attache by configuration .  make sure you load it before the app start ");
+            }
         }catch (Exception e){
             logger.error("ServiceImpl not found ",e);
         }
