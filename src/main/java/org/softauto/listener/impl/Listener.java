@@ -83,6 +83,8 @@ public class Listener {
                     result = joinPoint.proceed();
                 }
                 logger.trace(TRACER, "OUT " + fqmn.get() + " (" + sig.getReturnType() + ") " + result2String(result));
+            }else {
+                result = joinPoint.proceed();
             }
         } catch (Throwable e) {
             logger.error("capture message "+fqmn.get()+" fail  ",e );
@@ -99,7 +101,7 @@ public class Listener {
                 if(Listeners.isExist(sig)) {
                     String fqmn = buildMethodFQMN(sig.getName(), sig.getDeclaringType().getName());
                     if (!sig.getMethod().getReturnType().getName().equals("void")) {
-                        if (result != null)
+                        //if (result != null)
                             executor.submit(() -> {
                                 try {
                                     logger.debug("invoke returning listener on "+serviceImpl+ " fqmn:" + fqmn + " args:" + joinPoint.getArgs().toString() + " types:" + sig.getMethod().getParameterTypes());
