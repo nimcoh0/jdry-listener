@@ -21,6 +21,21 @@ public class Listeners {
             listeners.add(hm);
         }
 
+        static public void resetListener(){
+            listeners = new ArrayList<>();
+        }
+
+        static public void removeListener(String fqmn){
+            listeners.forEach(k->{
+                k.forEach((methodName,types)->{
+                    if(methodName.equals(fqmn)){
+                        k.put(fqmn,null);
+                    }
+                });
+            });
+        }
+
+
         static public void addSchema(Class iface){
             for(Method m : iface.getDeclaredMethods()){
                 addListener(m.getName(),m.getParameterTypes());
@@ -36,10 +51,12 @@ public class Listeners {
             ref.set(false);
             for(HashMap<String,Object> listener : listeners){
                 listener.forEach((k,v)->{
-                    String fqmn = buildMethodFQMN(sig.getName(), sig.getDeclaringType().getName());
-                    if(k.equals(fqmn) && Arrays.equals(((Class[])v),sig.getParameterTypes())){
-                         ref.set(true);
-                         logger.debug("found listener "+ fqmn);
+                    if(v != null) {
+                        String fqmn = buildMethodFQMN(sig.getName(), sig.getDeclaringType().getName());
+                        if(k.equals(fqmn) && Arrays.equals(((Class[])v),sig.getParameterTypes())) {
+                            ref.set(true);
+                            logger.debug("found listener " + fqmn);
+                        }
                     }
                  });
                 if(ref.get()){
