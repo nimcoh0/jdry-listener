@@ -15,6 +15,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -42,11 +43,12 @@ public class Listener {
         try {
             Listener.serviceImpl = serviceImpl;
             String javaHome = System.getenv("JAVA_HOME");
+            //String value = System.setProperty("jdk.attach.allowAttachSelf","true");
             addJarToClasspath(javaHome+"/lib/tools.jar");
             loadLib(System.getenv("temp"),"aspectjweaver-1.9.6.jar");
             if(loadWeaver) {
                 startWeaver(System.getenv("temp") + "/aspectjweaver-1.9.6.jar");
-            }else {
+           }else {
                 logger.info("Weaver not attache by configuration .  make sure you load it before the app start ");
             }
         }catch (Exception e){
@@ -152,27 +154,27 @@ public class Listener {
         return "";
     }
 
+
+
+    protected static URLClassLoader createClassLoader(URL[] _urls ) throws Exception {
+        List<URL> urls = new ArrayList<>();
+        urls.addAll(Arrays.asList(_urls));
+        URLClassLoader uRLClassLoader =  new URLClassLoader(urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());
+        Thread.currentThread().setContextClassLoader(uRLClassLoader);
+        return uRLClassLoader;
+    }
+
+
     public static void addJarToClasspath(String f) {
         try {
-            URLClassLoader classLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
-            addURL(new File(f).toURL(),classLoader);
+            URL[] urls = new URL[1];
+            urls[0] =(new File(f.trim()).toURL());
+            URLClassLoader urlClassLoader = createClassLoader(urls );
         } catch (Exception e) {
             throw new RuntimeException("Unexpected exception", e);
         }
     }
 
-
-    public static void addURL(URL u, URLClassLoader sysloader)  {
-        Class[] parameters = new Class[]{URL.class};
-        Class sysclass = URLClassLoader.class;
-        try {
-            Method method = sysclass.getDeclaredMethod("addURL",parameters);
-            method.setAccessible(true);
-            method.invoke(sysloader,new Object[]{ u });
-        } catch (Throwable t) {
-            logger.error("add url fail "+ u ,t);
-        }
-    }
 
     public static  void startWeaver(String aspectjweaver){
         try {
