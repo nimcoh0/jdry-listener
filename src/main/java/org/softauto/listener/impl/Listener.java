@@ -16,6 +16,7 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -218,6 +219,11 @@ public class Listener {
 
     static public void addListener(String methodName, Object[] types){
         Listeners.addListener(methodName,types);
+    }
+
+    static public void addSchema(HashMap<String,Object> hm){
+        Listeners.addSchema(hm);
+
     }
 
     static public void addSchema(Class iface){

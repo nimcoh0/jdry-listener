@@ -21,6 +21,11 @@ public class Listeners {
             listeners.add(hm);
         }
 
+    static public void addListener(HashMap<String,Object> hm){
+        listeners.add(hm);
+    }
+
+
         static public void resetListener(){
             listeners = new ArrayList<>();
         }
@@ -41,6 +46,10 @@ public class Listeners {
                 addListener(m.getName(),m.getParameterTypes());
             }
         }
+
+    static public void addSchema(HashMap<String,Object> hm){
+         addListener(hm);
+    }
 
         static public void addModule(AbstractModule module){
             module.configuration();
