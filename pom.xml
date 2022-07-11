@@ -34,7 +34,11 @@
             <artifactId>commons-io</artifactId>
             <version>2.10.0</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.softauto</groupId>
+            <artifactId>jdry-annotations</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -67,7 +71,45 @@
 
         </executions>
     </plugin>
+        <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>aspectj-maven-plugin</artifactId>
+            <version>1.14.0</version>
 
+            <configuration>
+                <complianceLevel>11</complianceLevel>
+                <showWeaveInfo>true</showWeaveInfo>
+                <encoding>UTF-8</encoding>
+                <verbose>true</verbose>
+                <Xlint>ignore</Xlint>
+                <source>11</source>
+                <target>11</target>
+                <forceAjcCompile>true</forceAjcCompile>
+
+                <sources>
+                    <source>
+                        <basedir>${basedir}</basedir>
+                        <includes>
+
+                            <include>**/*.java</include>
+                        </includes>
+
+                    </source>
+                </sources>
+
+            </configuration>
+
+            <executions>
+                <execution>
+
+                    <phase>compile</phase>
+                    <goals>
+                        <goal>compile</goal>
+                    </goals>
+                </execution>
+            </executions>
+
+        </plugin>
     </plugins>
     </build>
 </project>

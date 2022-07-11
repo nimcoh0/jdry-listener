@@ -5,13 +5,17 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.*;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.softauto.annotations.Iprovider;
+import org.softauto.annotations.UpdateForTesting;
 import org.softauto.listener.AbstractModule;
 import org.softauto.listener.Listeners;
 import org.softauto.listener.MultipleRecursiveToStringStyle;
 
 import java.io.*;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -21,8 +25,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+@Aspect
 public class Listener {
 
     static org.apache.logging.log4j.Logger logger = org.apache.logging.log4j.LogManager.getLogger(Listener.class);
@@ -44,10 +50,10 @@ public class Listener {
             Listener.serviceImpl = serviceImpl;
             String javaHome = System.getenv("JAVA_HOME");
             //String value = System.setProperty("jdk.attach.allowAttachSelf","true");
-            addJarToClasspath(javaHome+"/lib/tools.jar");
+            //addJarToClasspath(javaHome+"/lib/tools.jar");
             loadLib(System.getenv("temp"),"aspectjweaver-1.9.6.jar");
             if(loadWeaver) {
-                startWeaver(System.getenv("temp") + "/aspectjweaver-1.9.6.jar");
+                //startWeaver(System.getenv("temp") + "/aspectjweaver-1.9.6.jar");
            }else {
                 logger.info("Weaver not attache by configuration .  make sure you load it before the app start ");
             }
@@ -57,7 +63,31 @@ public class Listener {
     }
 
 
-    public  static Object captureAll(org.aspectj.lang.ProceedingJoinPoint joinPoint){
+
+    @Pointcut("@annotation(updateForTesting)")
+    public void callAt(UpdateForTesting updateForTesting) {
+    }
+
+    //@annotation(UpdateForTesting) && execution(* *(..))  && !within(org.softauto..*) ")
+    //@Around("@annotation(UpdateForTesting) && execution(* *(..))  && !within(org.softauto..*) ")
+    @Around("callAt(updateForTesting)")
+    public synchronized Object captureUpdateProvider(org.aspectj.lang.ProceedingJoinPoint joinPoint,UpdateForTesting updateForTesting){
+        Object o = null;
+        try {
+            Class c = Class.forName(updateForTesting.provider());
+            Constructor<?> ctor = c.getConstructor();
+            Iprovider p = (Iprovider)ctor.newInstance();
+            o = joinPoint.proceed();
+            o = p.apply(o);
+        }catch (Throwable e){
+            e.printStackTrace();
+        }
+       return o;
+    }
+
+
+    @Around("execution(* *(..)) && !within(org.softauto..*)")
+    public  synchronized   Object captureAll(org.aspectj.lang.ProceedingJoinPoint joinPoint){
         Object result =null;
         AtomicReference<String> fqmn = new AtomicReference();
         try {
@@ -69,18 +99,24 @@ public class Listener {
                 AtomicReference<Object[]> ref = new AtomicReference();
                 ref.set(null);
                 if(Listeners.isExist(sig)) {
-                    executor.submit(() -> {
+                    //result = joinPoint.proceed();
+                //executor.submit(() -> {
                         try {
+
                             logger.debug("invoke listener on "+serviceImpl+ " fqmn: "+ fqmn.get() + " args:" + joinPoint.getArgs().toString() + " types:" + sig.getMethod().getParameterTypes());
                             method.setAccessible(true);
                             ref.set((Object[]) method.invoke(serviceImpl, new Object[]{fqmn.get(), getArgs(joinPoint.getArgs()), getTypes(sig.getMethod().getParameterTypes())}));
+
                         } catch (Exception e) {
                             logger.error("send message " + fqmn.get() + " fail  ", e);
                         }
-                    });
+                   //});
+
+                   // }
                 }
                 Object[] o = ref.get();
                 if (o != null && o.length > 0 && o[0] != null) {
+                //if (o != null && o.length > 0 ) {
                   result = joinPoint.proceed(o);
                 } else {
                     result = joinPoint.proceed();
@@ -92,41 +128,54 @@ public class Listener {
         } catch (Throwable e) {
             logger.error("capture message "+fqmn.get()+" fail  ",e );
         }
-        returning(joinPoint,result);
+        //returning(joinPoint,result);
         return result;
     }
 
-    public  static void returning(JoinPoint joinPoint,Object result) {
+    @AfterReturning(pointcut="execution(* *(..)) && !within(org.softauto..*)", returning="result")
+    public synchronized   void returning(JoinPoint joinPoint,Object result) {
         try {
             if(serviceImpl != null) {
+
                 Method method = serviceImpl.getClass().getDeclaredMethod("executeAfter", new Class[]{String.class, Object[].class, Class[].class});
                 MethodSignature sig = (MethodSignature) joinPoint.getSignature();
                 if(Listeners.isExist(sig)) {
+                    Thread currentThread = Thread.currentThread();
                     String fqmn = buildMethodFQMN(sig.getName(), sig.getDeclaringType().getName());
                     if (!sig.getMethod().getReturnType().getName().equals("void")) {
-                        //if (result != null)
-                            executor.submit(() -> {
+
+                     //executor.submit(() -> {
                                 try {
+
                                     logger.debug("invoke returning listener on "+serviceImpl+ " fqmn:" + fqmn + " args:" + joinPoint.getArgs().toString() + " types:" + sig.getMethod().getParameterTypes());
                                     method.setAccessible(true);
                                     method.invoke(serviceImpl, new Object[]{fqmn, new Object[]{result}, new Class[]{sig.getMethod().getReturnType()}});
+                                   // currentThread.interrupt();
                                 } catch (Exception e) {
                                     logger.error("sendResult returning fail for " + fqmn , e);
                                 }
-                            });
+                           // });
                     } else {
-                        executor.submit(() -> {
+                   // executor.submit(() -> {
                             try {
+
                                 logger.debug("invoke returning listener on "+serviceImpl+ " fqmn:" + fqmn + " args:" + result2String(joinPoint.getArgs()) + " types:" + result2String(sig.getMethod().getParameterTypes()));
                                 method.setAccessible(true);
                                 method.invoke(serviceImpl, new Object[]{fqmn , getArgs(joinPoint.getArgs()), getTypes(sig.getMethod().getParameterTypes())});
+                               // currentThread.interrupt();
                              } catch (Exception e) {
                                 logger.error("sendResult returning fail for " + fqmn , e);
                             }
-                        });
+                      //  });
                     }
+                    //synchronized(currentThread){
+                       //Thread.currentThread().wait(1000L);
+                   // }
+                   // if(!executor.isTerminated()) {
+
+                   // }
                 }
-            }
+             }
         }catch (Exception e){
             e.printStackTrace();
         }
