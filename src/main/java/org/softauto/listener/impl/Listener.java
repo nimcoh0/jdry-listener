@@ -98,21 +98,25 @@ public class Listener {
                 logger.trace(TRACER, "IN " + fqmn.get() + "( " + Arrays.toString(sig.getMethod().getParameterTypes()) + ")[" + Arrays.toString(joinPoint.getArgs()) + "]");
                 AtomicReference<Object[]> ref = new AtomicReference();
                 ref.set(null);
-                if(Listeners.isExist(sig)) {
-                    //result = joinPoint.proceed();
-                //executor.submit(() -> {
+                if(Listeners.isMock(sig)){
+                    ref.set(Listeners.getMockValue(fqmn.get(),sig));
+                }else {
+                    if (Listeners.isExist(sig)) {
+                        //result = joinPoint.proceed();
+                        //executor.submit(() -> {
                         try {
 
-                            logger.debug("invoke listener on "+serviceImpl+ " fqmn: "+ fqmn.get() + " args:" + joinPoint.getArgs().toString() + " types:" + sig.getMethod().getParameterTypes());
+                            logger.debug("invoke listener on " + serviceImpl + " fqmn: " + fqmn.get() + " args:" + joinPoint.getArgs().toString() + " types:" + sig.getMethod().getParameterTypes());
                             method.setAccessible(true);
                             ref.set((Object[]) method.invoke(serviceImpl, new Object[]{fqmn.get(), getArgs(joinPoint.getArgs()), getTypes(sig.getMethod().getParameterTypes())}));
 
                         } catch (Exception e) {
                             logger.error("send message " + fqmn.get() + " fail  ", e);
                         }
-                   //});
+                        //});
 
-                   // }
+                        // }
+                    }
                 }
                 Object[] o = ref.get();
                 if (o != null && o.length > 0 && o[0] != null) {
